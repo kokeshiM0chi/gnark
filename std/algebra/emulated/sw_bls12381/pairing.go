@@ -268,7 +268,7 @@ func (pr Pairing) AssertIsOnTwist(Q *G2Affine) {
 	// Twist: Y² == X³ + aX + b, where a=0 and b=4(1+u)
 	// (X,Y) ∈ {Y² == X³ + aX + b} U (0,0)
 
-	// if Q=(0,0) we assign b=0 otherwise 3/(9+u), and continue
+	// if Q=(0,0) we assign b=0 otherwise 4(1+u), and continue
 	selector := pr.api.And(pr.Ext2.IsZero(&Q.P.X), pr.Ext2.IsZero(&Q.P.Y))
 	b := pr.Ext2.Select(selector, pr.Ext2.Zero(), pr.bTwist)
 
@@ -284,12 +284,9 @@ func (pr Pairing) AssertIsOnG1(P *G1Affine) {
 	pr.AssertIsOnCurve(P)
 
 	// 2- Check P has the right subgroup order
-	// TODO: add phi and scalarMulBySeedSquare to g1.go
 	// [x²]ϕ(P)
 	phiP := pr.g1.phi(P)
-	seedSquare := emulated.ValueOf[ScalarField]("228988810152649578064853576960394133504")
-	// TODO: use addchain to construct a fixed-scalar ScalarMul
-	_P := pr.curve.ScalarMul(phiP, &seedSquare)
+	_P := pr.g1.scalarMulBySeedSquare(phiP)
 	_P = pr.curve.Neg(_P)
 
 	// [r]Q == 0 <==>  P = -[x²]ϕ(P)
@@ -450,8 +447,7 @@ func (pr Pairing) doubleAndAddStep(p1, p2 *g2AffP) (*g2AffP, *lineEvaluation, *l
 
 	// compute x3 =λ1²-x1-x2
 	x3 := pr.Ext2.Square(l1)
-	x3 = pr.Ext2.Sub(x3, &p1.X)
-	x3 = pr.Ext2.Sub(x3, &p2.X)
+	x3 = pr.Ext2.Sub(x3, pr.Ext2.Add(&p1.X, &p2.X))
 
 	// omit y3 computation
 
@@ -469,8 +465,7 @@ func (pr Pairing) doubleAndAddStep(p1, p2 *g2AffP) (*g2AffP, *lineEvaluation, *l
 
 	// compute x4 = λ2²-x1-x3
 	x4 := pr.Ext2.Square(l2)
-	x4 = pr.Ext2.Sub(x4, &p1.X)
-	x4 = pr.Ext2.Sub(x4, x3)
+	x4 = pr.Ext2.Sub(x4, pr.Ext2.Add(&p1.X, x3))
 
 	// compute y4 = λ2(x1 - x4)-y1
 	y4 := pr.Ext2.Sub(&p1.X, x4)
@@ -504,8 +499,7 @@ func (pr Pairing) doubleStep(p1 *g2AffP) (*g2AffP, *lineEvaluation) {
 
 	// xr = λ²-2x
 	xr := pr.Ext2.Square(λ)
-	xr = pr.Ext2.Sub(xr, &p1.X)
-	xr = pr.Ext2.Sub(xr, &p1.X)
+	xr = pr.Ext2.Sub(xr, pr.Ext2.MulByConstElement(&p1.X, big.NewInt(2)))
 
 	// yr = λ(x-xr)-y
 	yr := pr.Ext2.Sub(&p1.X, xr)
@@ -520,38 +514,6 @@ func (pr Pairing) doubleStep(p1 *g2AffP) (*g2AffP, *lineEvaluation) {
 	line.R1 = *pr.Ext2.Sub(&line.R1, &p1.Y)
 
 	return &p, &line
-
-}
-
-// addStep adds two points in affine coordinates, and evaluates the line in Miller loop
-// https://eprint.iacr.org/2022/1162 (Section 6.1)
-func (pr Pairing) addStep(p1, p2 *g2AffP) (*g2AffP, *lineEvaluation) {
-
-	// compute λ = (y2-y1)/(x2-x1)
-	p2ypy := pr.Ext2.Sub(&p2.Y, &p1.Y)
-	p2xpx := pr.Ext2.Sub(&p2.X, &p1.X)
-	λ := pr.Ext2.DivUnchecked(p2ypy, p2xpx)
-
-	// xr = λ²-x1-x2
-	λλ := pr.Ext2.Square(λ)
-	p2xpx = pr.Ext2.Add(&p1.X, &p2.X)
-	xr := pr.Ext2.Sub(λλ, p2xpx)
-
-	// yr = λ(x1-xr) - y1
-	pxrx := pr.Ext2.Sub(&p1.X, xr)
-	λpxrx := pr.Ext2.Mul(λ, pxrx)
-	yr := pr.Ext2.Sub(λpxrx, &p1.Y)
-
-	var res g2AffP
-	res.X = *xr
-	res.Y = *yr
-
-	var line lineEvaluation
-	line.R0 = *λ
-	line.R1 = *pr.Ext2.Mul(λ, &p1.X)
-	line.R1 = *pr.Ext2.Sub(&line.R1, &p1.Y)
-
-	return &res, &line
 
 }
 
@@ -575,8 +537,7 @@ func (pr Pairing) tripleStep(p1 *g2AffP) (*g2AffP, *lineEvaluation, *lineEvaluat
 
 	// x2 = λ1²-2x
 	x2 := pr.Ext2.Square(λ1)
-	x2 = pr.Ext2.Sub(x2, &p1.X)
-	x2 = pr.Ext2.Sub(x2, &p1.X)
+	x2 = pr.Ext2.Sub(x2, pr.Ext2.MulByConstElement(&p1.X, big.NewInt(2)))
 
 	// ommit yr computation, and
 	// compute λ2 = 2y/(x2 − x) − λ1.

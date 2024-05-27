@@ -1,18 +1,22 @@
 module github.com/consensys/gnark
 
-go 1.20
+go 1.21
+
+toolchain go1.21.4
 
 require (
 	github.com/bits-and-blooms/bitset v1.8.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/consensys/bavard v0.1.13
-	github.com/consensys/compress v0.1.0
-	github.com/consensys/gnark-crypto v0.12.2-0.20231221171913-5d5eded6bb15
+	github.com/consensys/compress v0.2.5
+	github.com/consensys/gnark-crypto v0.12.2-0.20240504013751-564b6f724c3b
 	github.com/fxamacker/cbor/v2 v2.5.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/pprof v0.0.0-20230817174616-7a8ec2ada47b
+	github.com/icza/bitio v1.1.0
 	github.com/ingonyama-zk/iciclegnark v0.1.0
 	github.com/leanovate/gopter v0.2.9
+	github.com/ronanh/intcomp v1.1.0
 	github.com/rs/zerolog v1.30.0
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/crypto v0.17.0
@@ -22,7 +26,6 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/icza/bitio v1.1.0 // indirect
 	github.com/ingonyama-zk/icicle v0.0.0-20230928131117-97f0079e5c71 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
